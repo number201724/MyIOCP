@@ -60,18 +60,19 @@ class CBaseIOCPServer
 {
 private:
 	WSADATA m_WSAData;
-	LPFN_ACCEPTEX m_AcceptEx;
-	SOCKET m_Listen;
-	HANDLE m_IOCP;
-	HANDLE* m_ThreadHandles;
-	DWORD m_ThreadHandleCount;
+	LPFN_ACCEPTEX m_lpfnAcceptEx;
+	SOCKET m_sdListen;
+	HANDLE m_hIOCP;
+	HANDLE* m_pvThreadHandles;
+	DWORD m_nThreadHandleCount;
+	BOOL m_bIsShutdown;
 	
-	ULONG m_CurrentConnectCount;
-	ULONG m_LimitConnectCount;
+	ULONG m_nCurrentConnectCount;
+	ULONG m_nLimitConnectCount;
 
-	PER_SOCKET_CONTEXT_LIST m_ContextList;
+	PER_SOCKET_CONTEXT_LIST m_vContextList;
 
-	std::vector <PPER_IO_CONTEXT> m_AcceptIOContext;
+	std::vector <PPER_IO_CONTEXT> m_vAcceptIOContext;
 private:
 	SOCKET CreateSocket(void);
 	BOOL CreateListenSocket(USHORT nPort);
