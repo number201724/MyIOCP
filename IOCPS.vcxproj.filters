@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Plugin">
+      <UniqueIdentifier>{6b6bc5b6-9a3c-4f07-9e52-7df6f410c77b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="IOCPBuffer.h">
@@ -39,11 +42,26 @@
     <ClInclude Include="IOCPMemoryOverride.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="TextIOCPServer.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="IOCPMemPool.h">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="IOCPBufferWriter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="IOCPBufferReader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PackageIOCP.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="TextIOCPClient.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="TextIOCPServer.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="PackageIOCPClient.h">
+      <Filter>Plugin</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -60,7 +78,16 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="TextIOCPServer.cpp">
-      <Filter>源文件</Filter>
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="TextIOCPClient.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="PackageIOCP.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="PackageIOCPClient.cpp">
+      <Filter>Plugin</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -4,7 +4,7 @@ class UserBufferObject
 {
 public:
 	LONGLONG m_ulGuid;
-	CIOCPBuffer m_stBuffer;
+	CIOCPBufferWriter m_stBufferWriter;
 	LONG m_nRefs;
 	UserBufferObject();
 };
@@ -26,11 +26,17 @@ public:
 	CTextIOCPServer(void);
 	virtual ~CTextIOCPServer(void);
 	UserBufferList m_stUserBufferMap;
+
+
+	VOID SendEx(PPER_SOCKET_CONTEXT lpPerSocketContext,LPCSTR lpszText);
+public:
+	static DWORD GetStringLen(CONST BYTE* lpBuffer,DWORD dwBufferSize);
 private:
-	DWORD GetStringLen(BYTE* lpBuffer,DWORD dwBufferSize);
-private:
+	//需要调用父类
 	virtual VOID NotifyNewConnection(PPER_SOCKET_CONTEXT lpPerSocketContext);
 	virtual VOID NotifyDisconnectedClient(PPER_SOCKET_CONTEXT lpPerSocketContext);
 	virtual VOID NotifyReceivedPackage(PPER_SOCKET_CONTEXT lpPerSocketContext, CIOCPBuffer* pBuffer);
-	virtual VOID NotifyReceivedStrings(PPER_SOCKET_CONTEXT lpPerSocketContext, LPCSTR lpszText);
+
+
+	virtual VOID NotifyReceivedFormatPackage(PPER_SOCKET_CONTEXT lpPerSocketContext, LPCSTR lpszText);
 };

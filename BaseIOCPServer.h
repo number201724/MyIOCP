@@ -18,7 +18,7 @@ typedef struct _PER_IO_CONTEXT {
     IO_OPERATION                IOOperation;
     SOCKET                      SocketAccept; 
 	CIOCPBuffer*				IOCPBuffer;
-
+	CIOCPBufferReader*			BufferReader;
 	_PER_IO_CONTEXT();
 } PER_IO_CONTEXT, *PPER_IO_CONTEXT;
 
@@ -96,7 +96,7 @@ private:
 
 	static DWORD WINAPI WorkerThread(LPVOID Param);
 
-protected:
+public:
 	VOID CloseClient (PPER_SOCKET_CONTEXT lpPerSocketContext);
 
 public:

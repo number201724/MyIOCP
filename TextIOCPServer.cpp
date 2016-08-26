@@ -1,5 +1,7 @@
 #include "IOCPCommon.h"
 #include "IOCPBuffer.h"
+#include "IOCPBufferWriter.h"
+#include "IOCPBufferReader.h"
 #include "BaseIOCPServer.h"
 #include "TextIOCPServer.h"
 
@@ -79,7 +81,7 @@ CTextIOCPServer::~CTextIOCPServer(void)
 {
 }
 
-DWORD CTextIOCPServer::GetStringLen(BYTE* lpBuffer,DWORD dwBufferSize)
+DWORD CTextIOCPServer::GetStringLen(CONST BYTE* lpBuffer,DWORD dwBufferSize)
 {
 	for(DWORD i=0;i<dwBufferSize;i++)
 	{
@@ -103,17 +105,17 @@ VOID CTextIOCPServer::NotifyReceivedPackage(PPER_SOCKET_CONTEXT lpPerSocketConte
 {
 	UserBufferObject* object = m_stUserBufferMap.GetBufferObject(lpPerSocketContext->m_guid);
 	if(object){
-		DWORD dwNewBufferLength = pBuffer->m_dwWriterPosition + object->m_stBuffer.m_dwWriterPosition;
+		DWORD dwNewBufferLength = pBuffer->GetLength() + object->m_stBufferWriter.GetBuffer()->GetLength();
 
 		if(dwNewBufferLength > 0x20000){		//大于128KB的文本就踢出用户
 			CloseClient(lpPerSocketContext);
 			m_stUserBufferMap.ReleaseBufferObject(object);
 			return;
 		}
-		object->m_stBuffer.Write(pBuffer->GetBuffer(),pBuffer->m_dwWriterPosition);
+		object->m_stBufferWriter.Write(pBuffer);
 
-		DWORD dwBufferLength = object->m_stBuffer.m_dwWriterPosition;
-		BYTE* lpBuffer = object->m_stBuffer.GetBuffer();
+		DWORD dwBufferLength = object->m_stBufferWriter.GetBuffer()->GetLength();
+		BYTE* lpBuffer = object->m_stBufferWriter.GetBuffer()->GetBytes();
 
 		BYTE* lpStartPos = lpBuffer;
 		DWORD dwReadingLength = 0;
@@ -126,7 +128,7 @@ VOID CTextIOCPServer::NotifyReceivedPackage(PPER_SOCKET_CONTEXT lpPerSocketConte
 				char* lpszText = new char[dwStringLength];
 				strncpy_s(lpszText,dwStringLength,(const char*)lpStartPos,dwStringLength);
 
-				NotifyReceivedStrings(lpPerSocketContext,lpszText);
+				NotifyReceivedFormatPackage(lpPerSocketContext,lpszText);
 
 				delete [] lpszText;
 
@@ -139,15 +141,23 @@ VOID CTextIOCPServer::NotifyReceivedPackage(PPER_SOCKET_CONTEXT lpPerSocketConte
 		}
 
 		if(dwReadingLength > 0){
-			memcpy(object->m_stBuffer.m_pData->m_pData,&object->m_stBuffer.m_pData->m_pData[dwReadingLength],dwLastLength);
-			object->m_stBuffer.m_dwWriterPosition = dwLastLength;
+
+			memcpy((BYTE*)object->m_stBufferWriter.GetBuffer()->GetBytes(),
+				&object->m_stBufferWriter.GetBuffer()->GetBytes()[dwReadingLength],dwLastLength);
+			object->m_stBufferWriter.GetBuffer()->m_pData->m_dwDataLength = dwLastLength;
 		}
 
 		m_stUserBufferMap.ReleaseBufferObject(object);
 	}
 }
-
-VOID CTextIOCPServer::NotifyReceivedStrings(PPER_SOCKET_CONTEXT lpPerSocketContext, LPCSTR lpszText)
+VOID CTextIOCPServer::SendEx(PPER_SOCKET_CONTEXT lpPerSocketContext,LPCSTR lpszText)
 {
-	myprintf("%s\n",lpszText);
+	CIOCPBufferWriter Writer;
+	Writer.Write((BYTE*)lpszText,strlen(lpszText) + sizeof(char));
+
+	Send(lpPerSocketContext,Writer.GetBuffer());
+}
+VOID CTextIOCPServer::NotifyReceivedFormatPackage(PPER_SOCKET_CONTEXT lpPerSocketContext, LPCSTR lpszText)
+{
+
 }

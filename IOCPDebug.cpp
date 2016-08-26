@@ -1,33 +1,56 @@
-#include "IOCPCommon.h"
-#include "IOCPBuffer.h"
-
-#include "BaseIOCPServer.h"
-#include "TextIOCPServer.h"
-
-
-
-void DumpBuffer(BYTE* buffer, int length){
-	for (int i = 0; i < length; i++){
-		fprintf(stderr, "%02X ", buffer[i]);
-	}
-	fprintf(stderr, "\n");
-}
-
-int main(int argc,char** argv)
-{
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
-	CTextIOCPServer BaseServer;
-
-	BaseServer.Startup(20000,1,1000);
-	Sleep(5000);
-	BaseServer.Shutdown();
-
-	//
-
-	
-
-	////_CrtDumpMemoryLeaks();
-
-	return 0;
-}
+//#include "IOCPCommon.h"
+//#include "IOCPBuffer.h"
+//#include "IOCPBufferWriter.h"
+//#include "IOCPBufferReader.h"
+//#include "BaseIOCPServer.h"
+//#include "PackageIOCP.h"
+//#include "IOCPBuffer.h"
+//#include "PackageIOCPClient.h"
+//#include "TextIOCPServer.h"
+//#include "TextIOCPClient.h"
+//
+//
+//
+//class MyF:public CTextIOCPClient
+//{
+//public:
+//	void NotifyReceivedStringBuffer(const char* lpszText)
+//	{
+//		fprintf(stderr,lpszText);
+//	}
+//};
+//
+//int main(int argc,char** argv)
+//{
+//	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+//
+//
+//	CTextIOCPServer BaseServer;
+//
+//	BaseServer.Startup(20000,1,1000);
+//
+//	CTextIOCPClient BaseClient;
+//
+//	BaseClient.Connect("localhost",20000);
+//
+//
+//	//Sleep(1000);
+//	//BaseServer.Shutdown();
+//	//CTextClient myClient;
+//
+//	//if(myClient.Connect("127.0.0.1",20000) == FALSE){
+//	//	fprintf(stderr,"connect failed");
+//	//	exit(0);
+//	//}
+//
+//
+//	//myClient.Send("Hello");
+//
+//	while(true){
+//		getchar();
+//		BaseClient.Send("hello1111");
+//	}
+//
+//
+//	return 0;
+//}

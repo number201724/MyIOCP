@@ -1,5 +1,7 @@
 #include "IOCPCommon.h"
 #include "IOCPBuffer.h"
+#include "IOCPBufferWriter.h"
+#include "IOCPBufferReader.h"
 #include "BaseIOCPServer.h"
 
 #pragma comment(lib,"ws2_32.lib")
@@ -66,6 +68,7 @@ _PER_IO_CONTEXT::_PER_IO_CONTEXT() {
 	memset(&wsabuf, 0, sizeof(wsabuf));
 	SocketAccept = INVALID_SOCKET;
 	IOCPBuffer = NULL;
+	BufferReader = NULL;
 }
 _PER_SOCKET_CONTEXT::_PER_SOCKET_CONTEXT() {
 	QueryPerformanceCounter((LARGE_INTEGER*)&m_guid);
@@ -79,9 +82,9 @@ _PER_SOCKET_CONTEXT::~_PER_SOCKET_CONTEXT()
 		m_RecvContext.IOCPBuffer = NULL;
 	}
 
-	if (m_SendContext.IOCPBuffer != NULL) {
-		OP_DELETE<CIOCPBuffer>(m_SendContext.IOCPBuffer, _FILE_AND_LINE_);
-		m_SendContext.IOCPBuffer = NULL;
+	if (m_SendContext.BufferReader != NULL) {
+		OP_DELETE<CIOCPBufferReader>(m_SendContext.BufferReader, _FILE_AND_LINE_);
+		m_SendContext.BufferReader = NULL;
 	}
 
 	while (!m_SendBufferList.Empty()) {
@@ -156,7 +159,6 @@ VOID CBaseIOCPServer::UpdateCompletionPort(SOCKET hSocket, DWORD_PTR lpCompletio
 {
 	m_IOCP = CreateIoCompletionPort((HANDLE)hSocket, m_IOCP, (DWORD_PTR)lpCompletionKey, 0);
 }
-
 VOID CBaseIOCPServer::UpdateSocket(SOCKET sd) {
 	int nRet = setsockopt(
 		sd,
@@ -300,6 +302,7 @@ VOID CBaseIOCPServer::ReleaseSocketContext(PPER_SOCKET_CONTEXT lpPerSocketContex
 	if (ExitIOLoop(lpPerSocketContext) <= 0)
 	{
 		OP_DELETE<PER_SOCKET_CONTEXT>(lpPerSocketContext, _FILE_AND_LINE_);
+		m_ContextList.DeleteContext(lpPerSocketContext);
 	}
 }
 VOID CBaseIOCPServer::CloseClient(PPER_SOCKET_CONTEXT lpPerSocketContext)
@@ -308,18 +311,16 @@ VOID CBaseIOCPServer::CloseClient(PPER_SOCKET_CONTEXT lpPerSocketContext)
 	if (lpPerSocketContext->m_Socket != INVALID_SOCKET)
 	{
 		NotifyDisconnectedClient(lpPerSocketContext);
+
 		InterlockedDecrement(&m_CurrentConnectCount);
 
 		LINGER  lingerStruct;
 		lingerStruct.l_onoff = 1;
 		lingerStruct.l_linger = 0;
 		//强制关闭用户连接
-		//setsockopt(lpPerSocketContext->m_Socket, SOL_SOCKET, SO_LINGER,
-		//	(char *)&lingerStruct, sizeof(lingerStruct));
+		setsockopt(lpPerSocketContext->m_Socket, SOL_SOCKET, SO_LINGER,
+			(char *)&lingerStruct, sizeof(lingerStruct));
 
-		m_ContextList.DeleteContext(lpPerSocketContext);
-
-		CancelIo((HANDLE)lpPerSocketContext->m_Socket);
 		closesocket(lpPerSocketContext->m_Socket);
 		lpPerSocketContext->m_Socket = INVALID_SOCKET;
 	}
@@ -345,8 +346,11 @@ VOID CBaseIOCPServer::PostClientIoRead(PPER_SOCKET_CONTEXT lpPerSocketContext, P
 	lpPerIOContext->SocketAccept = lpPerSocketContext->m_Socket;
 
 	//投递接收操作
-	lpPerIOContext->wsabuf.len = lpPerIOContext->IOCPBuffer->GetBufferLength();
-	lpPerIOContext->wsabuf.buf = (CHAR*)lpPerIOContext->IOCPBuffer->GetBuffer();
+	if (lpPerIOContext->IOCPBuffer->GetLength() < IOCP_SWAP_BUFFER_SIZE) {
+		lpPerIOContext->IOCPBuffer->Reallocate(IOCP_SWAP_BUFFER_SIZE);
+	}
+	lpPerIOContext->wsabuf.len = IOCP_SWAP_BUFFER_SIZE;
+	lpPerIOContext->wsabuf.buf = (CHAR*)lpPerIOContext->IOCPBuffer->GetBytes();
 
 	if (WSARecv(lpPerIOContext->SocketAccept, &lpPerIOContext->wsabuf, 1, &dwNumberRecvd, &dwFlags, &lpPerIOContext->Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING)
 	{
@@ -377,12 +381,12 @@ VOID CBaseIOCPServer::PostClientIoWrite(PPER_SOCKET_CONTEXT lpPerSocketContext, 
 	lpPerIOContext->SocketAccept = lpPerSocketContext->m_Socket;
 
 	//计算出应该发送多少字节
-	DWORD nTotalBytes = lpPerIOContext->IOCPBuffer->GetBufferLength();
-	DWORD nSentBytes = nTotalBytes - lpPerIOContext->IOCPBuffer->m_dwReaderPosition;
+	DWORD nTotalBytes = lpPerIOContext->BufferReader->GetBuffer()->GetLength();
+	DWORD nSentBytes = nTotalBytes - lpPerIOContext->BufferReader->m_nPosition;
 
 	//计算到发送缓冲区的位置并且设置长度
 	lpPerIOContext->wsabuf.len = nSentBytes;
-	lpPerIOContext->wsabuf.buf = (CHAR*)&lpPerIOContext->IOCPBuffer->GetBuffer()[lpPerIOContext->IOCPBuffer->m_dwReaderPosition];
+	lpPerIOContext->wsabuf.buf = (CHAR*)&lpPerIOContext->BufferReader->GetBuffer()->GetBytes()[lpPerIOContext->BufferReader->m_nPosition];
 	//投递发送消息
 	if (WSASend(lpPerIOContext->SocketAccept, &lpPerIOContext->wsabuf, 1, &dwNumberSent, dwFlags, &lpPerIOContext->Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING)
 	{
@@ -445,8 +449,7 @@ VOID CBaseIOCPServer::OnClientIoRead(PPER_SOCKET_CONTEXT lpPerSocketContext, PPE
 	IO_POST_RESULT PostResult;
 
 	//收到数据,设置缓冲区,并且通知用户已经收到了数据
-	//lpPerIOContext->IOCPBuffer->m_pData->m_dwDataLength = dwIoSize;
-	lpPerIOContext->IOCPBuffer->m_dwWriterPosition = dwIoSize;
+	lpPerIOContext->IOCPBuffer->m_pData->m_dwDataLength = dwIoSize;
 
 	NotifyReceivedPackage(lpPerSocketContext, lpPerIOContext->IOCPBuffer);
 	//更换缓冲区
@@ -468,22 +471,33 @@ VOID CBaseIOCPServer::OnClientIoRead(PPER_SOCKET_CONTEXT lpPerSocketContext, PPE
 }
 VOID CBaseIOCPServer::OnClientIoWrite(PPER_SOCKET_CONTEXT lpPerSocketContext, PPER_IO_CONTEXT lpPerIOContext, DWORD dwIoSize)
 {
-	lpPerIOContext->IOCPBuffer->m_dwReaderPosition += dwIoSize;		//增加已经写入的缓冲区长度
+	lpPerIOContext->BufferReader->m_nPosition += dwIoSize;		//增加已经写入的缓冲区长度
 
-	NotifyWritePackage(lpPerSocketContext, lpPerIOContext->IOCPBuffer);
+	NotifyWritePackage(lpPerSocketContext, lpPerIOContext->BufferReader->GetBuffer());
 
-	if (lpPerIOContext->IOCPBuffer->m_dwReaderPosition >= lpPerIOContext->IOCPBuffer->GetBufferLength())		//缓冲区发送完毕,通知用户回调,且更换下一块数据继续发送
+	if (lpPerIOContext->BufferReader->m_nPosition >= lpPerIOContext->BufferReader->GetLength())		//缓冲区发送完毕,通知用户回调,且更换下一块数据继续发送
 	{
-		NotifyWriteCompleted(lpPerSocketContext, lpPerIOContext->IOCPBuffer);
+		NotifyWriteCompleted(lpPerSocketContext, lpPerIOContext->BufferReader->GetBuffer());
 
 		//最小锁定时间
 		lpPerSocketContext->m_Lock.Lock();
-		OP_DELETE<CIOCPBuffer>(lpPerIOContext->IOCPBuffer, _FILE_AND_LINE_);
-		lpPerIOContext->IOCPBuffer = lpPerSocketContext->m_SendBufferList.Pop();
+
+		OP_DELETE<CIOCPBufferReader>(lpPerIOContext->BufferReader, _FILE_AND_LINE_);
+		lpPerIOContext->BufferReader = NULL;
+
+		//切换下一块缓冲区
+		CIOCPBuffer* lpBuffer = lpPerSocketContext->m_SendBufferList.Pop();
+		if (lpBuffer) {
+
+			lpPerIOContext->BufferReader = OP_NEW_1<CIOCPBufferReader, CIOCPBuffer*>(_FILE_AND_LINE_, lpBuffer);
+
+			OP_DELETE<CIOCPBuffer>(lpBuffer, _FILE_AND_LINE_);
+		}
+
 		lpPerSocketContext->m_Lock.UnLock();
 	}
 
-	if (lpPerIOContext->IOCPBuffer)
+	if (lpPerIOContext->BufferReader)
 	{
 		IO_POST_RESULT PostResult;
 
@@ -531,13 +545,7 @@ DWORD WINAPI CBaseIOCPServer::WorkerThread(LPVOID Param)
 		}
 
 		//断开用户的连接
-		if (!bSuccess || (bSuccess && (dwIoSize == 0))) {
-
-			//如果是AcceptEx的IO lpCompletionKey == pThis
-			if (lpCompletionKey == (DWORD_PTR)pThis) {
-				continue;
-			}
-
+		if (!bSuccess || (bSuccess && (dwIoSize == 0)) && lpCompletionKey != (DWORD_PTR)pThis) {
 			pThis->CloseClient((PPER_SOCKET_CONTEXT)lpCompletionKey);
 			pThis->ReleaseSocketContext((PPER_SOCKET_CONTEXT)lpCompletionKey);
 
@@ -572,18 +580,13 @@ BOOL CBaseIOCPServer::Startup(USHORT nPort, DWORD dwWorkerThreadCount, DWORD dwM
 
 	m_IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 
-
 	UpdateCompletionPort(m_Listen, (DWORD_PTR)this);
+
 	//创建一些AcceptEx消息并投递到IOCP
 	//AcceptEx是IOCP模型下的高效接收函数
 	//支持多线程接收客户的连接
-	if (CreateAcceptSocket(NULL) == FALSE) {
-		return FALSE;
-	}
-
-	//多次投递其他的AcceptEx消息
-	for (DWORD dwThreadIndex = 0; dwThreadIndex < (dwWorkerThreadCount - 1); dwThreadIndex++) {
-		CreateAcceptSocket(FALSE);
+	for (DWORD dwThreadIndex = 0; dwThreadIndex < dwWorkerThreadCount; dwThreadIndex++) {
+		CreateAcceptSocket(NULL);
 	}
 
 	//服务器最大连接数
@@ -700,12 +703,12 @@ BOOL CBaseIOCPServer::Send(PPER_SOCKET_CONTEXT lpPerSocketContext, CIOCPBuffer* 
 	lpPerSocketContext->m_Lock.Lock();
 
 	if (lpPerSocketContext->m_Socket != INVALID_SOCKET) {
-		if (lpPerSocketContext->m_SendContext.IOCPBuffer) {
+		if (lpPerSocketContext->m_SendContext.BufferReader) {
 			lpPerSocketContext->m_SendBufferList.Push(OP_NEW_1<CIOCPBuffer, CIOCPBuffer*>(_FILE_AND_LINE_, lpIOCPBuffer));
 			bRet = TRUE;
 		}
 		else {
-			lpPerSocketContext->m_SendContext.IOCPBuffer = OP_NEW_1<CIOCPBuffer, CIOCPBuffer*>(_FILE_AND_LINE_, lpIOCPBuffer);
+			lpPerSocketContext->m_SendContext.BufferReader = OP_NEW_1<CIOCPBufferReader, CIOCPBuffer*>(_FILE_AND_LINE_, lpIOCPBuffer);
 
 			EnterIOLoop(lpPerSocketContext);
 

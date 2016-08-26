@@ -40,6 +40,7 @@ UINT __stdcall CThreadPool::_ThreadProc(LPVOID pParam)
 	DWORD					dwThreadId = GetCurrentThreadId();
 	HANDLE					hWaits[2];
 	IRunObject*				runObject;
+	bool					bAutoDelete;
 
 	ASSERT(pParam != NULL);
 	if(NULL == pParam)

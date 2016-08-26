@@ -1,7 +1,15 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IOCPS", "IOCPS.vcxproj", "{3A8A55E6-21BD-4325-9E6C-902B526CCBE7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{139C3884-A7FF-42EF-B28E-8AEA48679698}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SampleTextClient", "SampleTextClient\SampleTextClient.vcxproj", "{28E57718-B1E2-4951-8280-281DED8C4CDA}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SampleTextServer", "SampleTextServer\SampleTextServer.vcxproj", "{AA08D40E-87E8-4248-9CC0-F509DE8C204C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,8 +21,20 @@ Global
 		{3A8A55E6-21BD-4325-9E6C-902B526CCBE7}.Debug|Win32.Build.0 = Debug|Win32
 		{3A8A55E6-21BD-4325-9E6C-902B526CCBE7}.Release|Win32.ActiveCfg = Release|Win32
 		{3A8A55E6-21BD-4325-9E6C-902B526CCBE7}.Release|Win32.Build.0 = Release|Win32
+		{28E57718-B1E2-4951-8280-281DED8C4CDA}.Debug|Win32.ActiveCfg = Debug|Win32
+		{28E57718-B1E2-4951-8280-281DED8C4CDA}.Debug|Win32.Build.0 = Debug|Win32
+		{28E57718-B1E2-4951-8280-281DED8C4CDA}.Release|Win32.ActiveCfg = Release|Win32
+		{28E57718-B1E2-4951-8280-281DED8C4CDA}.Release|Win32.Build.0 = Release|Win32
+		{AA08D40E-87E8-4248-9CC0-F509DE8C204C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AA08D40E-87E8-4248-9CC0-F509DE8C204C}.Debug|Win32.Build.0 = Debug|Win32
+		{AA08D40E-87E8-4248-9CC0-F509DE8C204C}.Release|Win32.ActiveCfg = Release|Win32
+		{AA08D40E-87E8-4248-9CC0-F509DE8C204C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{28E57718-B1E2-4951-8280-281DED8C4CDA} = {139C3884-A7FF-42EF-B28E-8AEA48679698}
+		{AA08D40E-87E8-4248-9CC0-F509DE8C204C} = {139C3884-A7FF-42EF-B28E-8AEA48679698}
 	EndGlobalSection
 EndGlobal
