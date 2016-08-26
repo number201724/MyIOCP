@@ -69,16 +69,15 @@ private:
 	ULONG m_CurrentConnectCount;
 	ULONG m_LimitConnectCount;
 
-	PPER_SOCKET_CONTEXT m_ListenContext;
 	PER_SOCKET_CONTEXT_LIST m_ContextList;
 
 	std::vector <PPER_IO_CONTEXT> m_AcceptIOContext;
 private:
 	SOCKET CreateSocket(void);
 	BOOL CreateListenSocket(USHORT nPort);
-	BOOL CreateAcceptSocket(BOOL fUpdateIOCP,PPER_IO_CONTEXT lpPerIOContext = NULL);
+	BOOL CreateAcceptSocket(PPER_IO_CONTEXT lpPerIOContext = NULL);
 	FARPROC GetExtensionProcAddress(GUID& Guid);
-	VOID UpdateCompletionPort(PPER_SOCKET_CONTEXT lpPerSocketContext);
+	VOID UpdateCompletionPort(SOCKET hSocket, DWORD_PTR lpCompletionKey = NULL);
 	VOID UpdateSocket(SOCKET sd);
 	
 

@@ -20,7 +20,7 @@ int main(int argc,char** argv)
 	CTextIOCPServer BaseServer;
 
 	BaseServer.Startup(20000,1,1000);
-	Sleep(5000000);
+	Sleep(5000);
 	BaseServer.Shutdown();
 
 	//
