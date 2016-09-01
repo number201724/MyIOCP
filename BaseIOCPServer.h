@@ -32,7 +32,7 @@ public:
 	PER_IO_CONTEXT				m_RecvContext;
 	IOCPQueue<CIOCPBuffer*>		m_SendBufferList;
 
-	std::list<_PER_SOCKET_CONTEXT*>::iterator pos;
+	//std::list<_PER_SOCKET_CONTEXT*>::iterator pos;
 	_PER_SOCKET_CONTEXT();
 	virtual ~_PER_SOCKET_CONTEXT();
 };
@@ -40,18 +40,31 @@ public:
 typedef _PER_SOCKET_CONTEXT PER_SOCKET_CONTEXT;
 typedef PER_SOCKET_CONTEXT* PPER_SOCKET_CONTEXT;
 
+extern "C"
+{
+	#include "table.h"
+};
+class CBaseIOCPServer;
 
 class _PER_SOCKET_CONTEXT_LIST
 {
+	friend class CBaseIOCPServer;
+
 public:
+	_PER_SOCKET_CONTEXT_LIST();
+	virtual ~_PER_SOCKET_CONTEXT_LIST();
+	
 	IOCPMutex m_ContextLock;
-	std::map<LONGLONG,PPER_SOCKET_CONTEXT> m_vContextMap;
-	std::list<PPER_SOCKET_CONTEXT> m_vContextList;
+	//std::map<LONGLONG,PPER_SOCKET_CONTEXT> m_vContextMap;
+	//std::list<PPER_SOCKET_CONTEXT> m_vContextList;
 
 	void ClearAll();
 	void AddContext(PPER_SOCKET_CONTEXT lpPerSocketContext);
 	void DeleteContext(PPER_SOCKET_CONTEXT lpPerSocketContext);
 	PPER_SOCKET_CONTEXT GetContext(LONGLONG guid);		//使用这个函数需要手动锁定 ***且不会增加引用计数器***
+
+private:
+	struct pt_table *m_table;
 };
 
 typedef _PER_SOCKET_CONTEXT_LIST PER_SOCKET_CONTEXT_LIST;
@@ -109,6 +122,7 @@ public:
 	~CBaseIOCPServer(void);
 
 protected:
+	static void OnPtTableCloseCallback(struct pt_table* ptable, uint64_t id, void *ptr, void* user_arg);
 	virtual VOID NotifyNewConnection(PPER_SOCKET_CONTEXT lpPerSocketContext);
 	virtual VOID NotifyDisconnectedClient(PPER_SOCKET_CONTEXT lpPerSocketContext);
 	virtual VOID NotifyWriteCompleted(PPER_SOCKET_CONTEXT lpPerSocketContext, CIOCPBuffer* lpIOCPBuffer);

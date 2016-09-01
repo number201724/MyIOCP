@@ -14,7 +14,7 @@ private:
 public:
 	IOCPMutex()
 	{
-		InitializeCriticalSection(&m_csCriticalSection);
+		InitializeCriticalSectionAndSpinCount(&m_csCriticalSection, 4000);
 	}
 	~IOCPMutex()
 	{

@@ -63,6 +63,9 @@
     <ClInclude Include="PackageIOCPClient.h">
       <Filter>Plugin</Filter>
     </ClInclude>
+    <ClInclude Include="table.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="IOCPBuffer.cpp">
@@ -88,6 +91,9 @@
     </ClCompile>
     <ClCompile Include="PackageIOCPClient.cpp">
       <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="table.c">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

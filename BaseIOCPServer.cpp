@@ -4,8 +4,10 @@
 #include "IOCPBufferReader.h"
 #include "BaseIOCPServer.h"
 
+
 #pragma comment(lib,"ws2_32.lib")
 
+LONGLONG g_ullUserId = 1;
 
 static GUID WSAID_AcceptEx = WSAID_ACCEPTEX;
 static GUID WSAID_GetAcceptExSockaddrs = WSAID_GETACCEPTEXSOCKADDRS;
@@ -70,8 +72,11 @@ _PER_IO_CONTEXT::_PER_IO_CONTEXT() {
 	IOCPBuffer = NULL;
 	BufferReader = NULL;
 }
+
+
+
 _PER_SOCKET_CONTEXT::_PER_SOCKET_CONTEXT() {
-	QueryPerformanceCounter((LARGE_INTEGER*)&m_guid);
+	m_guid = InterlockedIncrement64(&g_ullUserId);
 	m_NumberOfPendingIO = 0;
 	m_Socket = INVALID_SOCKET;
 }
@@ -91,44 +96,49 @@ _PER_SOCKET_CONTEXT::~_PER_SOCKET_CONTEXT()
 		OP_DELETE<CIOCPBuffer>(m_SendBufferList.Pop(), _FILE_AND_LINE_);
 	}
 }
+
+
+_PER_SOCKET_CONTEXT_LIST::_PER_SOCKET_CONTEXT_LIST()
+{
+	m_table = pt_table_new();
+}
+
+_PER_SOCKET_CONTEXT_LIST::~_PER_SOCKET_CONTEXT_LIST()
+{
+	pt_table_free(m_table);
+}
+
 void _PER_SOCKET_CONTEXT_LIST::AddContext(PPER_SOCKET_CONTEXT lpPerSocketContext)
 {
 	m_ContextLock.Lock();
+	pt_table_insert(m_table, lpPerSocketContext->m_guid, lpPerSocketContext);
 
-	m_vContextMap[lpPerSocketContext->m_guid] = lpPerSocketContext;
+	//m_vContextMap[lpPerSocketContext->m_guid] = lpPerSocketContext;
 
-	lpPerSocketContext->pos = m_vContextList.insert(m_vContextList.end(), lpPerSocketContext);
+	//lpPerSocketContext->pos = m_vContextList.insert(m_vContextList.end(), lpPerSocketContext);
 
 	m_ContextLock.UnLock();
 }
 
 void _PER_SOCKET_CONTEXT_LIST::DeleteContext(PPER_SOCKET_CONTEXT lpPerSocketContext)
 {
-	std::map<LONGLONG, PPER_SOCKET_CONTEXT>::iterator map_iter;
 	m_ContextLock.Lock();
-	map_iter = m_vContextMap.find(lpPerSocketContext->m_guid);
-	if (map_iter != m_vContextMap.end()) {
-		m_vContextMap.erase(map_iter);
-		m_vContextList.erase(lpPerSocketContext->pos);
-	}
+	pt_table_erase(m_table, lpPerSocketContext->m_guid);
 	m_ContextLock.UnLock();
 }
 void _PER_SOCKET_CONTEXT_LIST::ClearAll()
 {
 	m_ContextLock.Lock();
-	m_vContextMap.clear();
-	m_vContextList.clear();
+	pt_table_clear(m_table);
 	m_ContextLock.UnLock();
 }
 PPER_SOCKET_CONTEXT _PER_SOCKET_CONTEXT_LIST::GetContext(LONGLONG guid)
 {
 	PPER_SOCKET_CONTEXT lpPerSocketContext = NULL;
-	std::map<LONGLONG, PPER_SOCKET_CONTEXT>::iterator map_iter;
 
-	map_iter = m_vContextMap.find(guid);
-	if (map_iter != m_vContextMap.end()) {
-		lpPerSocketContext = map_iter->second;
-	}
+	m_ContextLock.Lock();
+	lpPerSocketContext = (PPER_SOCKET_CONTEXT)pt_table_find(m_table, guid);
+	m_ContextLock.UnLock();
 
 	return lpPerSocketContext;
 }
@@ -621,6 +631,13 @@ BOOL CBaseIOCPServer::Startup(USHORT nPort, DWORD dwWorkerThreadCount, DWORD dwM
 
 	return TRUE;
 }
+void CBaseIOCPServer::OnPtTableCloseCallback(struct pt_table* ptable, uint64_t id, void *ptr, void* user_arg)
+{
+	CBaseIOCPServer *pBaseIocp = (CBaseIOCPServer*)user_arg;
+
+	PPER_SOCKET_CONTEXT lpPerSocketContext = (PPER_SOCKET_CONTEXT)ptr;
+	pBaseIocp->CloseClient(lpPerSocketContext);
+}
 BOOL CBaseIOCPServer::Shutdown()
 {
 	if (m_sdListen == INVALID_SOCKET) {
@@ -654,11 +671,12 @@ BOOL CBaseIOCPServer::Shutdown()
 
 	//关闭客户端的连接并取消所有IO
 	m_vContextList.m_ContextLock.Lock();
-	for (std::list<PPER_SOCKET_CONTEXT>::iterator iter = m_vContextList.m_vContextList.begin(); iter != m_vContextList.m_vContextList.end(); iter++)
+	pt_table_enum(m_vContextList.m_table, OnPtTableCloseCallback, this);
+	/*for (std::list<PPER_SOCKET_CONTEXT>::iterator iter = m_vContextList.m_vContextList.begin(); iter != m_vContextList.m_vContextList.end(); iter++)
 	{
 		PPER_SOCKET_CONTEXT lpPerSocketContext = (*iter);
 		CloseClient(lpPerSocketContext);
-	}
+	}*/
 	m_vContextList.m_ContextLock.UnLock();
 
 	//安全的让线程退出
@@ -678,7 +696,7 @@ BOOL CBaseIOCPServer::Shutdown()
 	OP_DELETE_ARRAY<HANDLE>(m_pvThreadHandles, _FILE_AND_LINE_);
 	m_pvThreadHandles = NULL;
 
-	assert(m_vContextList.m_vContextMap.empty());
+	//assert(m_vContextList.m_vContextMap.empty());
 
 	CloseHandle(m_hIOCP);
 	m_hIOCP = INVALID_HANDLE_VALUE;

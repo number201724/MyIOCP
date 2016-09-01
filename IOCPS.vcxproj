@@ -88,6 +88,7 @@
     <ClInclude Include="IOCPQueue.h" />
     <ClInclude Include="PackageIOCP.h" />
     <ClInclude Include="RunObject.h" />
+    <ClInclude Include="table.h" />
     <ClInclude Include="TextIOCPClient.h" />
     <ClInclude Include="TextIOCPServer.h" />
     <ClInclude Include="ThreadPool.h" />
@@ -98,6 +99,7 @@
     <ClCompile Include="PackageIOCPClient.cpp" />
     <ClCompile Include="IOCPDebug.cpp" />
     <ClCompile Include="PackageIOCP.cpp" />
+    <ClCompile Include="table.c" />
     <ClCompile Include="TextIOCPClient.cpp" />
     <ClCompile Include="TextIOCPServer.cpp" />
     <ClCompile Include="ThreadPool.cpp" />
