@@ -317,24 +317,36 @@ VOID CBaseIOCPServer::ReleaseSocketContext(PPER_SOCKET_CONTEXT lpPerSocketContex
 }
 VOID CBaseIOCPServer::CloseClient(PPER_SOCKET_CONTEXT lpPerSocketContext)
 {
+	BOOL bRemove = FALSE;
+	SOCKET sdSocket = INVALID_SOCKET;
+
+	//optimize performance 2016.09.23
 	lpPerSocketContext->m_Lock.Lock();
+
 	if (lpPerSocketContext->m_Socket != INVALID_SOCKET)
 	{
-		NotifyDisconnectedClient(lpPerSocketContext);
+		bRemove = TRUE;
+		sdSocket = lpPerSocketContext->m_Socket;
+		lpPerSocketContext->m_Socket = INVALID_SOCKET;
+	}
 
+	lpPerSocketContext->m_Lock.UnLock();
+
+	NotifyDisconnectedClient(lpPerSocketContext);
+
+	if (bRemove == TRUE)
+	{
 		InterlockedDecrement(&m_nCurrentConnectCount);
 
 		LINGER  lingerStruct;
 		lingerStruct.l_onoff = 1;
 		lingerStruct.l_linger = 0;
 		//强制关闭用户连接
-		setsockopt(lpPerSocketContext->m_Socket, SOL_SOCKET, SO_LINGER,
+		setsockopt(sdSocket, SOL_SOCKET, SO_LINGER,
 			(char *)&lingerStruct, sizeof(lingerStruct));
 
-		closesocket(lpPerSocketContext->m_Socket);
-		lpPerSocketContext->m_Socket = INVALID_SOCKET;
+		closesocket(sdSocket);
 	}
-	lpPerSocketContext->m_Lock.UnLock();
 }
 
 VOID CBaseIOCPServer::PostClientIoRead(PPER_SOCKET_CONTEXT lpPerSocketContext, PPER_IO_CONTEXT lpPerIOContext, IO_POST_RESULT& PostResult)
