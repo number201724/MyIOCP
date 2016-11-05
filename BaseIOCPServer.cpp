@@ -332,10 +332,10 @@ VOID CBaseIOCPServer::CloseClient(PPER_SOCKET_CONTEXT lpPerSocketContext)
 
 	lpPerSocketContext->m_Lock.UnLock();
 
-	NotifyDisconnectedClient(lpPerSocketContext);
-
 	if (bRemove == TRUE)
 	{
+		NotifyDisconnectedClient(lpPerSocketContext);
+		
 		InterlockedDecrement(&m_nCurrentConnectCount);
 
 		LINGER  lingerStruct;
