@@ -335,7 +335,7 @@ VOID CBaseIOCPServer::CloseClient(PPER_SOCKET_CONTEXT lpPerSocketContext)
 	if (bRemove == TRUE)
 	{
 		NotifyDisconnectedClient(lpPerSocketContext);
-		
+
 		InterlockedDecrement(&m_nCurrentConnectCount);
 
 		LINGER  lingerStruct;
@@ -344,7 +344,8 @@ VOID CBaseIOCPServer::CloseClient(PPER_SOCKET_CONTEXT lpPerSocketContext)
 		//强制关闭用户连接
 		setsockopt(sdSocket, SOL_SOCKET, SO_LINGER,
 			(char *)&lingerStruct, sizeof(lingerStruct));
-
+		CancelIo((HANDLE)sdSocket);
+		
 		closesocket(sdSocket);
 	}
 }
