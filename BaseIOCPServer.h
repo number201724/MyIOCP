@@ -22,7 +22,8 @@ typedef struct _PER_IO_CONTEXT {
 	_PER_IO_CONTEXT();
 } PER_IO_CONTEXT, *PPER_IO_CONTEXT;
 
-class _PER_SOCKET_CONTEXT {
+class _PER_SOCKET_CONTEXT 
+{
 public:
     SOCKET                      m_Socket;
 	IOCPMutex					m_Lock;

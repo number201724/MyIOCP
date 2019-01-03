@@ -375,7 +375,14 @@ VOID CBaseIOCPServer::PostClientIoRead(PPER_SOCKET_CONTEXT lpPerSocketContext, P
 	lpPerIOContext->wsabuf.len = IOCP_SWAP_BUFFER_SIZE;
 	lpPerIOContext->wsabuf.buf = (CHAR*)lpPerIOContext->IOCPBuffer->GetBytes();
 
-	if (WSARecv(lpPerIOContext->SocketAccept, &lpPerIOContext->wsabuf, 1, &dwNumberRecvd, &dwFlags, &lpPerIOContext->Overlapped, NULL) == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING)
+	if (WSARecv(lpPerIOContext->SocketAccept,
+		 &lpPerIOContext->wsabuf,
+		 1,
+		 &dwNumberRecvd,
+		 &dwFlags, 
+		 &lpPerIOContext->Overlapped,
+		 NULL) == SOCKET_ERROR &&
+		 WSAGetLastError() != WSA_IO_PENDING)
 	{
 		PostResult = PostIoFailed;
 	}

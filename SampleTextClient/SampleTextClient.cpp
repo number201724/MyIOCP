@@ -23,6 +23,7 @@ unsigned int __stdcall worker_thread_test(void*param){
 }
 int _tmain(int argc, _TCHAR* argv[])
 {
+
 	for(int i=0;i<100;i++){
 		_beginthreadex(NULL,0,worker_thread_test,NULL,0,NULL);
 	}

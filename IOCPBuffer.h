@@ -1,19 +1,19 @@
 #pragma once
 
-class IOCPBufferData
+typedef struct IOCPBufferData
 {
-public:
 	ULONG m_nRefs;
 	BYTE* m_pData;
 	DWORD m_dwAllocLength;
 	DWORD m_dwDataLength;
 
-	IOCPBufferData();
-	virtual ~IOCPBufferData();
+	IOCPBufferData( DWORD dwAllocLength );
+	IOCPBufferData( );
+	~IOCPBufferData( );
 
-	VOID AddRef();
-	VOID Release();
-};
+	VOID AddRef( );
+	VOID Release( );
+}IOCPBufferData, *PIOCPBufferData;
 
 class CIOCPBuffer
 {
@@ -50,7 +50,7 @@ private:
 	virtual ~IOCPBufferMngr();
 public:
 	static IOCPBufferMngr* getInstance();
-
+	static void ReleasePool( );
 	static IOCPBufferData* Allocate(DWORD dwAllocLength);
 	static VOID Free(IOCPBufferData* pData);
 	static IOCPBufferData* Reallocate(IOCPBufferData* pData,DWORD dwAllocLength);
